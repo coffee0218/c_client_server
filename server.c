@@ -1,12 +1,13 @@
 #include "common.h"
 
+char* homepath = "/home/jason/Desktop/jikeshijian_network";
 static void sig_int(int signo) {
     printf("\nreceived signal SIGINT\n");
     exit(0);
 }
 
 int main(int argc, char **argv) {
-    chdir("/home/jason/Desktop/jikeshijian_network");//change home diretory
+    chdir(homepath);//change home diretory
     int listenfd;
     listenfd = socket(AF_INET, SOCK_STREAM, 0);
     
@@ -18,7 +19,8 @@ int main(int argc, char **argv) {
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(atoi(argv[1]));
-
+    int on = 1;
+    setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
     int rt1 = bind(listenfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
     if (rt1 < 0) {
         error(1, errno, "bind failed ");
@@ -77,9 +79,27 @@ int main(int argc, char **argv) {
 		}
 		else if(strncmp(message, "cd", 2) == 0)
 		{
-			char* path = message+3;
-			printf("server change path:%s\n", path);
-			chdir(path);
+			printf("path is: %s\n", message+3);
+			if(strncmp(message+3, "~", 1) == 0)
+			{
+				int ret = chdir(homepath);
+				if(ret < 0)
+				{
+					char* s = "please input right path\n";
+					send(connfd, s, strlen(s), 0);
+				}
+			}
+			else
+			{
+				char* path = message+3;
+				printf("server change path:%s\n", path);
+				int ret = chdir(path);
+				if(ret < 0)
+				{
+					char* s = "please input right path\n";
+					send(connfd, s, strlen(s), 0);
+				}
+			}
 		}
 		else if(strncmp(message, "ls", 2) == 0)
 		{
